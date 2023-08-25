@@ -23,26 +23,19 @@ def extract_data(pdf_path):
 
 all_data = [extract_data(pdf_path) for pdf_path in pdf_paths]
 
-def get_coordinates(county):
-    geolocator = Nominatim(user_agent="county_coordinates")
-    location = geolocator.geocode(county + ", Virginia, USA")
-    if location:
-        return location.latitude, location.longitude
-    else:
-        return "N/A", "N/A"
-    
-def get_payment_by_county(county_name, table):
-    df = pd.DataFrame(table)
-    payment = df.loc[df[1] == county_name, df[-1]]
-    return payment
-
 def get_data_frame(data):
-    county_names = [x[1] for x in data[0][13:] if x[1] != None and x[1] != "TOTALS"]
-    county_data = []
-    columns = ["County", "Coordinates", "Distributors_2021", "Distributors_2022", "Distributors_2023", "Janssen_Year_2022", "Janssen_Year_2023", "Total_Payment"]
-    for county in county_names:
-        county_data.append([county, get_coordinates(county), get_payment_by_county(county, table)] for table in data)
-    return pd.DataFrame(county_data, columns=columns)
+    county_names = [row[1] for row in data[0][13:] if row[1] != None and row[1] != "TOTALS"]
+    columns = ["County", "Coordinates", "Distributors_2021", "Distributors_2022", "Distributors_2023", "Janssen_2022", "Janssen_2023", "Total_Payment"]
+    county_dict = {county : [] for county in county_names}
+    for table in data:
+        for row in table:
+            if row[1] == "Subdivision":
+                break
+            if row[1] in county_names:
+                county_dict[row[1]].append(row[-1])
+    county_df = pd.DataFrame(county_dict, columns=columns)
+    county_df.set_index("County", inplace=True)
+    return county_df
     
 print(get_data_frame(all_data))
 
