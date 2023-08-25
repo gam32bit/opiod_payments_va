@@ -33,7 +33,7 @@ def get_coordinates(county):
     
 def get_payment_by_county(county_name, table):
     df = pd.DataFrame(table)
-    payment = df.loc[df[1] == county_name].index[0]][-1]
+    payment = df.loc[df[1] == county_name, df[-1]]
     return payment
 
 def get_data_frame(data):
