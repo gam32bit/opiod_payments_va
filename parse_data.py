@@ -16,26 +16,33 @@ def extract_data(pdf_path):
     pdf = pdfplumber.open(pdf_path)
     data = []
     for page in pdf.pages:
-        table = page.extract_table()
-        for row in table:
-            data.append(row)
+        data.append(page.extract_table())
     return data
 
 all_data = [extract_data(pdf_path) for pdf_path in pdf_paths]
 
+
 def get_data_frame(data):
-    county_names = [row[1] for row in data[0][13:] if row[1] != None and row[1] != "TOTALS"]
     columns = ["County", "Coordinates", "Distributors_2021", "Distributors_2022", "Distributors_2023", "Janssen_2022", "Janssen_2023", "Total_Payment"]
-    county_dict = {county : [] for county in county_names}
+    df = pd.DataFrame(columns=columns)
+    df.set_index("County", inplace=True)
+    counter = 0
     for table in data:
-        for row in table:
-            if row[1] == "Subdivision":
-                break
-            if row[1] in county_names:
-                county_dict[row[1]].append(row[-1])
-    county_df = pd.DataFrame(county_dict, columns=columns)
-    county_df.set_index("County", inplace=True)
-    return county_df
+        full_table = table[0] + table[1]
+        header_index = next(idx for idx, row in enumerate(full_table) if row[1] == "Subdivision")
+        data_rows = full_table[header_index + 1 : ]
+        for idx, row in enumerate(data_rows):
+            if row[1] == None:
+                continue
+            
+            else:
+                county_name = row[1]
+                if county_name not in df.index:
+                    df.loc[county_name] = [None] * (len(columns) - 1)
+                df.loc[[county_name], [columns[counter + 2]]] = row[-1]
+        counter += 1
+    return df
     
-print(get_data_frame(all_data))
+my_df = get_data_frame(all_data)
+print(my_df[["Distributors_2021", "Distributors_2022", "Distributors_2023", "Janssen_2022"]])
 
