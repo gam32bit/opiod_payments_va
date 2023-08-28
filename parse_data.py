@@ -21,10 +21,12 @@ def extract_data(pdf_path):
 
 all_data = [extract_data(pdf_path) for pdf_path in pdf_paths]
 
+fips_df = pd.read_csv("files/fips-codes-virginia.csv", dtype={"County FIPS Code": str})
+fips_df["GU Name"] = fips_df["GU Name"].str.upper()
 
 
 def get_data_frame(data):
-    columns = ["County", "Coordinates", "Distributors_2021", "Distributors_2022", "Distributors_2023", "Janssen_2022", "Janssen_2023", "Total_Payment"]
+    columns = ["County", "FIPS", "Distributors_2021", "Distributors_2022", "Distributors_2023", "Janssen_2022", "Janssen_2023", "Total_Payment"]
     df = pd.DataFrame(columns=columns)
     df.set_index("County", inplace=True)
     counter = 0
@@ -41,6 +43,8 @@ def get_data_frame(data):
                 clean_county_name = county_name.upper()
                 if clean_county_name not in df.index:
                     df.loc[clean_county_name] = [None] * (len(columns) - 1)
+                    if clean_county_name.split(' ', 1)[0] in fips_df["GU Name"].values:
+                        df.loc[clean_county_name, "FIPS"] = fips_df.loc[fips_df["GU Name"] == clean_county_name.split(' ', 1)[0], "County FIPS Code"].iloc[0]
                 df.loc[clean_county_name, columns[counter + 2]] = row[-1]
         counter += 1
     return df
