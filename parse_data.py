@@ -22,6 +22,7 @@ def extract_data(pdf_path):
 all_data = [extract_data(pdf_path) for pdf_path in pdf_paths]
 
 
+
 def get_data_frame(data):
     columns = ["County", "Coordinates", "Distributors_2021", "Distributors_2022", "Distributors_2023", "Janssen_2022", "Janssen_2023", "Total_Payment"]
     df = pd.DataFrame(columns=columns)
@@ -37,12 +38,12 @@ def get_data_frame(data):
             
             else:
                 county_name = row[1]
-                if county_name not in df.index:
-                    df.loc[county_name] = [None] * (len(columns) - 1)
-                df.loc[[county_name], [columns[counter + 2]]] = row[-1]
+                clean_county_name = county_name.upper()
+                if clean_county_name not in df.index:
+                    df.loc[clean_county_name] = [None] * (len(columns) - 1)
+                df.loc[clean_county_name, columns[counter + 2]] = row[-1]
         counter += 1
     return df
     
 my_df = get_data_frame(all_data)
-print(my_df[["Distributors_2021", "Distributors_2022", "Distributors_2023", "Janssen_2022"]])
-
+my_df.to_csv("files/va_data.csv")
