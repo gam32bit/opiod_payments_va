@@ -10,9 +10,10 @@ pdf = pdfplumber.open("files/Summary-of-Opioid-Funds-to-Virginia-Localities-as-o
 
 def extract_table_data(pdf):
     data = []
-    for page in pdf.pages:
-
-        data.append(page.extract_tables())
+    for idx, page in enumerate(pdf.pages):
+        #skip pages without tables
+        if idx > 2:
+            data.append(page.extract_tables())
     return data
 
 def get_county_list(pdf):
@@ -27,7 +28,13 @@ def get_county_list(pdf):
             if text.isdigit():
                 county = ' '.join(text_entries[prev_number_idx + 1 : idx])
                 #concatenate words since last number and add to new list
-                counties_unsorted.append(county.upper())
+                county = county.upper()
+                #add county ending to properly match FIPS
+                if "CITY" not in county:
+                    county = county + " COUNTY"
+                elif county == "JAMES CITY" or county == "CHARLES CITY":
+                    county = county + " COUNTY"
+                counties_unsorted.append(county)
                 prev_number_idx = idx
     sorted_counties = sorted(counties_unsorted)
     return sorted_counties
@@ -35,18 +42,28 @@ def get_county_list(pdf):
 
 fips_df = pd.read_csv("files/fips-codes-virginia.csv", dtype={"County FIPS Code": str})
 fips_df["GU Name"] = fips_df["GU Name"].str.upper()
+fips_df["Entity Description"] = fips_df["Entity Description"].str.upper()
 
 data_stuff = extract_table_data(pdf)
+counties = get_county_list(pdf)
+print(counties)
 
-def get_data_frame(data):
-    columns = ["County", "FIPS", "Distributors_2021", "Distributors_2022", "Distributors_2023", "Janssen_2022", "Janssen_2023", "Total_Payment"]
+def get_data_frame_settlement_by_year(data):
+    columns = ["County", "FIPS", "Fiscal Year", "Distributors", "Janssen", "Mallinckrodt", "From OAA", "25% Incentive"]
     df = pd.DataFrame(columns=columns)
     df.set_index("County", inplace=True)
+    df["County"] = counties
     counter = 0
     final = []
-    for table in data:
+    # identify first row 'Direct Distribution from Settlement Administrator'
+    # skip that and column names
+    # loop through county list, use year as counter, reset to 2022
+    # if value is digit, convert to numeric, if not, 'n/a'
+    # When year is over 2039, stop
+"""     for county in counties:
+        df["County"] = 
         final.append(table)
-    return final
+    return final """
 """         full_table = table[0] + table[1]
         header_index = next(idx for idx, row in enumerate(full_table) if row[1] == "Subdivision")
         data_rows = full_table[header_index + 1 : ]
@@ -72,7 +89,5 @@ def get_data_frame(data):
     final_columns = ["FIPS", "Percent_of_Total"]
     final_df = df[final_columns] """
     
-print(get_county_list(pdf))
-""" print(get_data_frame(data_stuff)) """
-test = '1'
-print(test.isdigit())
+
+
