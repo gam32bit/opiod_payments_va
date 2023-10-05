@@ -46,24 +46,30 @@ fips_df["Entity Description"] = fips_df["Entity Description"].str.upper()
 
 data_stuff = extract_table_data(pdf)
 counties = get_county_list(pdf)
-print(counties)
+years = [year for _ in range(133) for year in range(2022, 2040)]
 
-def get_data_frame_settlement_by_year(data):
-    columns = ["County", "FIPS", "Fiscal Year", "Distributors", "Janssen", "Mallinckrodt", "From OAA", "25% Incentive"]
+#Create multi-index empty dataframe
+counties_index = [county for county in counties for _ in range(18)]
+county_tuples = list(zip(counties_index, years))
+print(county_tuples)
+
+def get_data_frame_settlement_by_year(data, county_range, year_range):
+    columns = ["County", "Fiscal Year", "Distributors", "Janssen", "Mallinckrodt", "From OAA", "25% Incentive"]
     df = pd.DataFrame(columns=columns)
-    df.set_index("County", inplace=True)
-    df["County"] = counties
-    counter = 0
-    final = []
-    # identify first row 'Direct Distribution from Settlement Administrator'
-    # skip that and column names
+    df.set_index("County", "Fiscal Year", inplace=True)
+    df["County"] = county_range
+    df["Fiscal Year"] = year_range
+    return df
+"""     for table in data:
+        
+        for idx, row in enumerate(table):
+        # skip first row 'Direct Distribution from Settlement Administrator' and column headers
+            if idx > 1: """
+                
     # loop through county list, use year as counter, reset to 2022
     # if value is digit, convert to numeric, if not, 'n/a'
     # When year is over 2039, stop
-"""     for county in counties:
-        df["County"] = 
-        final.append(table)
-    return final """
+
 """         full_table = table[0] + table[1]
         header_index = next(idx for idx, row in enumerate(full_table) if row[1] == "Subdivision")
         data_rows = full_table[header_index + 1 : ]
@@ -88,6 +94,6 @@ def get_data_frame_settlement_by_year(data):
     df["Percent_of_Total"] = df["Total_Payment"] / total_total_payment
     final_columns = ["FIPS", "Percent_of_Total"]
     final_df = df[final_columns] """
-    
+
 
 
