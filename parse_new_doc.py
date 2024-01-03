@@ -8,12 +8,64 @@ pd.set_option('display.float_format', '{:.2f}'.format)
 
 pdf = pdfplumber.open("files/Summary-of-Opioid-Funds-to-Virginia-Localities-as-of-Jan-2023.pdf")
 
-def extract_table_data(pdf):
+#first and last tables weren't extracting properly so I'm just typing them out
+
+first_table = [[
+    [None, 'Direct Distribution from Settlement Administrator', None, None, None, None],
+    ['Fiscal Year', 'Distributors', 'Janssen', 'Mallinckrodt', 'From OAA', '25%\nIncentive'],
+    ['FY 2022', '14,151', '0', '0', '0', '0'],
+    ['FY 2023', '24,546', '61,395', '3,642', '32,416', '8,104'],
+    ['FY 2024', '14,872', '0', 'Still', '5,453', '1,363'],
+    ['FY 2025', '18,614', '0', 'being', '6,825', '1,706'],
+    ['FY 2026', '18,614', '0', 'determined', '6,826', '1,706'],
+    ['FY 2027', '18,614', '2,857', '', '7,873', '1,968'],
+    ['FY 2028', '18,614', '2,857', '', '7,873', '1,968'],
+    ['FY 2029', '21,893', '2,857', '', '9,075', '2,269'],
+    ['FY 2030', '21,893', '3,638', '', '9,361', '2,340'],
+    ['FY 2031', '21,893', '3,638', '', '9,361', '2,340'],
+    ['FY 2032', '18,403', '3,638', '', '8,082', '2,020'],
+    ['FY 2033', '18,403', '0', '', '6,748', '1,687'],
+    ['FY 2034', '18,403', '0', '', '6,748', '1,687'],
+    ['FY 2035', '18,403', '0', '', '6,748', '1,687'],
+    ['FY 2036', '18,403', '0', '', '6,748', '1,687'],
+    ['FY 2037', '18,403', '0', '', '6,748', '1,687'],
+    ['FY 2038', '18,403', '0', '', '6,748', '1,687'],
+    ['FY 2039', '18,403', '0', '', '6,748', '1,687'],
+    [None, '$ 340,928', '$ 80,881', 'TBD', '$ 150,379', '$ 37,595']
+]]
+#typing out last table because it wasn't extracting right for some reason
+last_page_table = [[
+    [None, 'Direct Distribution from Settlement Administrator', None, None, None, None],
+    ['Fiscal Year', 'Distributors', 'Janssen', 'Mallinckrodt', 'From OAA', '25%\nIncentive'],
+    ['FY 2022', '22,812', '0', '0', '0', '0'],
+    ['FY 2023', '39,570', '98,972', '5,871', '52,256', '13,064'],
+    ['FY 2024', '23,975', '0', 'Still', '8,791', '2,198'],
+    ['FY 2025', '30,008', '0', 'being', '11,003', '2,751'],
+    ['FY 2026', '30,008', '0', 'determined', '11,003', '2,751'],
+    ['FY 2027', '30,008', '4,606', '', '12,692', '3,173'],
+    ['FY 2028', '30,008', '4,606', '', '12,692', '3,173'],
+    ['FY 2029', '35,292', '4,606', '', '14,630', '3,657'],
+    ['FY 2030', '35,292', '5,865', '', '15,091', '3,773'],
+    ['FY 2031', '35,292', '5,865', '', '15,091', '3,773'],
+    ['FY 2032', '29,667', '5,865', '', '13,028', '3,257'],
+    ['FY 2033', '29,667', '0', '', '10,878', '2,719'],
+    ['FY 2034', '29,667', '0', '', '10,878', '2,719'],
+    ['FY 2035', '29,667', '0', '', '10,878', '2,719'],
+    ['FY 2036', '29,667', '0', '', '10,878', '2,719'],
+    ['FY 2037', '29,667', '0', '', '10,878', '2,719'],
+    ['FY 2038', '29,667', '0', '', '10,878', '2,719'],
+    ['FY 2039', '29,667', '0', '', '10,878', '2,719'],
+    [None, '$ 549,599', '$ 130,386', 'TBD', '$ 242,421', '$ 60,605']
+]]
+
+def extract_table_data(pdf, first_page, last_page):
     data = []
+    
     for idx, page in enumerate(pdf.pages):
-        #skip pages without tables
         if idx > 2:
-            data.append(page.extract_tables())
+            data.append(page.extract_tables())  
+    data.pop()
+    data.append(last_page)
     return data
 
 def get_county_list(pdf):
@@ -21,7 +73,7 @@ def get_county_list(pdf):
     #extract text entries from dictionary, turn into a list
     text_entries = [entry['text'] for entry in pdf.pages[2].extract_words()]
     #to skip table of contents at the beginning, set variables to first entry
-    counties_unsorted = ["ACCOMACK"]
+    counties_unsorted = ["ACCOMACK COUNTY"]
     prev_number_idx = 4
     for idx, text in enumerate(text_entries):
         if idx > 4:
@@ -38,62 +90,46 @@ def get_county_list(pdf):
                 prev_number_idx = idx
     sorted_counties = sorted(counties_unsorted)
     return sorted_counties
-    
 
 fips_df = pd.read_csv("files/fips-codes-virginia.csv", dtype={"County FIPS Code": str})
 fips_df["GU Name"] = fips_df["GU Name"].str.upper()
 fips_df["Entity Description"] = fips_df["Entity Description"].str.upper()
 
-data_stuff = extract_table_data(pdf)
+data_stuff = extract_table_data(pdf, first_table, last_page_table)
+
 counties = get_county_list(pdf)
-years = [year for _ in range(133) for year in range(2022, 2040)]
+years = list(range(2022, 2040))
 
-#Create multi-index empty dataframe
-counties_index = [county for county in counties for _ in range(18)]
-county_tuples = list(zip(counties_index, years))
-print(county_tuples)
+#Create variables for multi-index empty dataframe
 
-def get_data_frame_settlement_by_year(data, county_range, year_range):
-    columns = ["County", "Fiscal Year", "Distributors", "Janssen", "Mallinckrodt", "From OAA", "25% Incentive"]
-    df = pd.DataFrame(columns=columns)
-    df.set_index("County", "Fiscal Year", inplace=True)
-    df["County"] = county_range
-    df["Fiscal Year"] = year_range
-    return df
-"""     for table in data:
-        
-        for idx, row in enumerate(table):
-        # skip first row 'Direct Distribution from Settlement Administrator' and column headers
-            if idx > 1: """
+# Create tuples for the multi-level index
+county_tuples = [(county, year) for year in years for county in counties]
+print("Unique elements in county_tuples:", len(set(county_tuples)))
+
+
+def get_data_frame_settlement_by_year(data, index_tuples):
+    columns = ["Distributors", "Janssen", "Mallinckrodt", "From OAA", "25% Incentive"]
+    index = pd.MultiIndex.from_tuples(index_tuples, names=["County", "Fiscal Year"])
+    print("DF index is ", len(index))
+    clean_data = []
+
+    for table in data:
+    # Skip the first two rows and the last row, and remove the first column (Fiscal Year)
+        exact_table = table[0]
+        clean_table = exact_table[2:-1]
+        for row in clean_table:
+            clean_row = row[1:]
+            new_row = []
+            for cell in clean_row:
                 
-    # loop through county list, use year as counter, reset to 2022
-    # if value is digit, convert to numeric, if not, 'n/a'
-    # When year is over 2039, stop
+                clean_cell = cell.replace("$", "").replace(",", "")
+                if clean_cell.replace('.', '', 1).isdigit():
+                    new_row.append(float(clean_cell))
+                else:
+                    new_row.append(None)
+            clean_data.append(new_row)
+       
+    final_df = pd.DataFrame(clean_data, index=index, columns=columns)
+    return final_df
 
-"""         full_table = table[0] + table[1]
-        header_index = next(idx for idx, row in enumerate(full_table) if row[1] == "Subdivision")
-        data_rows = full_table[header_index + 1 : ]
-        for idx, row in enumerate(data_rows):
-            if row[1] == None:
-                continue
-            
-            else:
-                county_name = row[1]
-                clean_county_name = county_name.upper()
-                if clean_county_name not in df.index:
-                    df.loc[clean_county_name] = [None] * (len(columns) - 1)
-                    if clean_county_name.split(' ', 1)[0] in fips_df["GU Name"].values:
-                        df.loc[clean_county_name, "FIPS"] = fips_df.loc[fips_df["GU Name"] == clean_county_name.split(' ', 1)[0], "County FIPS Code"].iloc[0]
-                df.loc[clean_county_name, columns[counter + 2]] = round(float(row[-1].replace('$', '').replace(',', '')), 2)
-
-
-        counter += 1
-    columns_to_sum = ["Distributors_2021", "Distributors_2022", "Distributors_2023", "Janssen_2022", "Janssen_2023"]
-    df["Total_Payment"] = df[columns_to_sum].sum(axis=1)
-    total_total_payment = df["Total_Payment"].sum()
-    df["Percent_of_Total"] = df["Total_Payment"] / total_total_payment
-    final_columns = ["FIPS", "Percent_of_Total"]
-    final_df = df[final_columns] """
-
-
-
+print(data_stuff)
